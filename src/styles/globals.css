@@ -1,0 +1,222 @@
+@import url('https://fonts.googleapis.com/css2?family=Teachers&display=swap');
+
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@layer utilities {
+  /* Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  input:focus ~ label,
+  input:not(:placeholder-shown) ~ label {
+    @apply -translate-y-2 text-xsmall-regular;
+  }
+
+  input:focus ~ label {
+    @apply left-0;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    border: 1px solid #212121;
+    -webkit-text-fill-color: #212121;
+    -webkit-box-shadow: 0 0 0px 1000px #fff inset;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+  }
+}
+
+@layer components {
+  .content-container {
+    @apply max-w-[1440px] w-full mx-auto px-6;
+  }
+
+  .contrast-btn {
+    @apply px-4 py-2 border border-black rounded-full hover:bg-black hover:text-white transition-colors duration-200 ease-in;
+  }
+
+  /* All text classes updated with Teachers font + letter-spacing */
+  .text-xsmall-regular {
+    @apply text-[10px] leading-4 font-normal;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-small-regular {
+    @apply text-xs leading-5 font-normal;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-small-semi {
+    @apply text-xs leading-5 font-semibold;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-base-regular {
+    @apply text-sm leading-6 font-normal;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-base-semi {
+    @apply text-sm leading-6 font-semibold;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-large-regular {
+    @apply text-base leading-6 font-normal;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-large-semi {
+    @apply text-base leading-6 font-semibold;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-xl-regular {
+    @apply text-2xl leading-[36px] font-normal;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-xl-semi {
+    @apply text-2xl leading-[36px] font-semibold;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-2xl-regular {
+    @apply text-[30px] leading-[48px] font-normal;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-2xl-semi {
+    @apply text-[30px] leading-[48px] font-semibold;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-3xl-regular {
+    @apply text-[32px] leading-[44px] font-normal;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  .text-3xl-semi {
+    @apply text-[32px] leading-[44px] font-semibold;
+    font-family: 'Teachers', sans-serif;
+    letter-spacing: 0.063rem;
+  }
+
+  /* Existing components */
+  @keyframes marquee {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+  .marquee {
+    display: inline-block;
+    min-width: 100%;
+    white-space: nowrap;
+    animation: marquee 18s linear infinite;
+  }
+
+  .handwritten-double-underline {
+    color: #55d485;
+    position: relative;
+    display: inline-block;
+  }
+
+  .handwritten-double-underline::after,
+  .handwritten-double-underline::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background-color: #55d485;
+  }
+
+  .handwritten-double-underline::before {
+    bottom: 0;
+    transform: rotate(-1deg);
+  }
+
+  .handwritten-double-underline::after {
+    bottom: -4px;
+    transform: rotate(1deg);
+  }
+}
+
+
+@media (max-width: 639px) {
+  .hero-dynamic-height {
+    height: 56vh !important;
+    max-height: 56vh !important;
+  }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .hero-dynamic-height {
+   height: 60vh !important;
+    max-height: 60vh !important;
+  }
+}
+@media (min-width: 1024px) {
+  .hero-dynamic-height {
+    height: calc(100vh - 115px) !important;
+    max-height: calc(100vh - 115px) !important;
+  }
+}
+
+html, body, p, span, h1, h2, h3, h4, h5, h6, a, li, button, input, textarea {
+  font-family: 'Teachers', sans-serif;
+  letter-spacing: 0.063rem;
+}
+
+body {
+  font-family: 'Teachers', sans-serif;
+}
+
+@font-face {
+  font-family: 'Libra Serif Modern';
+  src: url('/ecomcore-storefront/public/fonts/LibraSerifModern/LibraSerifModern-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Libra Serif Modern';
+  src: url('/ecomcore-storefront/public/fonts/LibraSerifModern/LibraSerifModern-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
