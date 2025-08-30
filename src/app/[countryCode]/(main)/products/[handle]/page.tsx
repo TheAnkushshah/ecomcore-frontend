@@ -54,8 +54,12 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const { handle } = props.params
   const region = await getRegion(props.params.countryCode)
 
+  // Don't call notFound() here, just return default metadata if not found
   if (!region) {
-    notFound()
+    return {
+      title: "Product Not Found | Lutyen's",
+      description: "This product could not be found.",
+    }
   }
 
   const product = await listProducts({
@@ -64,7 +68,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   }).then(({ response }) => response.products.find((p) => p.handle === handle))
 
   if (!product) {
-    notFound()
+    return {
+      title: "Product Not Found | Lutyen's",
+      description: "This product could not be found.",
+    }
   }
 
   return {
