@@ -1,93 +1,106 @@
-import { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { listProducts } from "@lib/data/products";
-import { listRegions } from "@lib/data/regions";
-import ProductTemplate from "@modules/products/templates";
+import { Metadata } from "next"
+import { notFound } from "next/navigation"
+import { listProducts } from "@lib/data/products"
+import { getRegion, listRegions } from "@lib/data/regions"
+import ProductTemplate from "@modules/products/templates"
 
 type Props = {
-  params: { countryCode: string; handle: string };
-};
-
-// ✅ Generate static paths for all products at build time
-export async function generateStaticParams() {
-  const regions = await listRegions();
-  if (!regions) return [];
-
-  const countryCodes = regions
-    .map((r) => r.countries?.map((c) => c.iso_2))
-    .flat()
-    .filter(Boolean) as string[];
-
-  const promises = countryCodes.map(async (country) => {
-    const { response } = await listProducts({
-      countryCode: country,
-      queryParams: { limit: 100, fields: "handle,title,thumbnail" },
-    });
-
-    return response.products.map((product) => ({
-      countryCode: country,
-      handle: product.handle,
-      title: product.title,
-      thumbnail: product.thumbnail,
-    }));
-  });
-
-  const productsByCountry = await Promise.all(promises);
-
-  return productsByCountry.flat().map((p) => ({
-    countryCode: p.countryCode,
-    handle: p.handle,
-  }));
+  params: Promise<{ countryCode: string; handle: string }>
 }
 
-// ✅ Generate metadata at build time
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { countryCode, handle } = params;
+export async function generateStaticParams() {
+  try {
+    const countryCodes = await listRegions().then((regions) =>
+      regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
+    )
 
-  const { response } = await listProducts({
-    countryCode,
+    if (!countryCodes) {
+      return []
+    }
+
+    const promises = countryCodes.map(async (country) => {
+      const { response } = await listProducts({
+        countryCode: country,
+        queryParams: { limit: 100, fields: "handle" },
+      })
+
+      return {
+        country,
+        products: response.products,
+      }
+    })
+
+    const countryProducts = await Promise.all(promises)
+
+    return countryProducts
+      .flatMap((countryData) =>
+        countryData.products.map((product) => ({
+          countryCode: countryData.country,
+          handle: product.handle,
+        }))
+      )
+      .filter((param) => param.handle)
+  } catch (error) {
+    console.error(
+      `Failed to generate static paths for product pages: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }.`
+    )
+    return []
+  }
+}
+
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params
+  const { handle } = params
+  const region = await getRegion(params.countryCode)
+
+  if (!region) {
+    notFound()
+  }
+
+  const product = await listProducts({
+    countryCode: params.countryCode,
     queryParams: { q: handle },
-  });
+  }).then(({ response }) => response.products.find((p) => p.handle === handle))
 
-  const product = response.products.find((p) => p.handle === handle);
-  if (!product) notFound();
+  if (!product) {
+    notFound()
+  }
 
   return {
     title: `${product.title} | Lutyen's`,
-    description: product.title,
+    description: `${product.title}`,
     openGraph: {
       title: `${product.title} | Lutyen's`,
-      description: product.title,
+      description: `${product.title}`,
       images: product.thumbnail ? [product.thumbnail] : [],
     },
-  };
+  }
 }
 
-// ✅ Static product page
-export default async function ProductPage({ params }: Props) {
-  const { countryCode, handle } = params;
+export default async function ProductPage(props: Props) {
+  const params = await props.params
+  const region = await getRegion(params.countryCode)
 
-  const { response } = await listProducts({
-    countryCode,
-    queryParams: { q: handle },
-  });
+  if (!region) {
+    notFound()
+  }
 
-  const product = response.products.find((p) => p.handle === handle);
-  if (!product) notFound();
+  const pricedProduct = await listProducts({
+    countryCode: params.countryCode,
+    queryParams: { q: params.handle },
+  }).then(({ response }) => response.products.find((p) => p.handle === params.handle))
 
-  // Fetch the region object for the given countryCode
-  const regions = await listRegions();
-  const region =
-    regions
-      ?.find((r) => r.countries?.some((c) => c.iso_2 === countryCode));
-
-  if (!region) notFound();
+  if (!pricedProduct) {
+    notFound()
+  }
 
   return (
     <ProductTemplate
-      product={product}
+      product={pricedProduct}
       region={region}
-      countryCode={countryCode}
+      countryCode={params.countryCode}
     />
-  );
+  )
 }
