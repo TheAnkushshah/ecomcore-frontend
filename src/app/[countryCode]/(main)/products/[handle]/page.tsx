@@ -102,6 +102,11 @@ export default async function ProductPage(props: Props) {
     const { countryCode, handle } = props.params
 
     const region = await getRegion(countryCode)
+    // TEMP DEBUG: log region result
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.log("Region for", countryCode, ":", region)
+    }
     if (!region) {
       notFound()
     }
@@ -110,6 +115,11 @@ export default async function ProductPage(props: Props) {
       countryCode,
       queryParams: { q: handle },
     })
+    // TEMP DEBUG: log products result
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.log("Products for", countryCode, handle, ":", response.products)
+    }
     const pricedProduct = response.products.find(
       (p) => p.handle === handle
     )
@@ -125,7 +135,12 @@ export default async function ProductPage(props: Props) {
         countryCode={countryCode}
       />
     )
-  } catch {
+  } catch (err) {
+    // TEMP DEBUG: log error
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.error("Error in ProductPage:", err)
+    }
     notFound()
   }
 }
