@@ -8,13 +8,13 @@ import ProductTemplate from "@modules/products/templates"
 export const dynamic = 'force-dynamic'
 
 type Props = {
-  params: Promise<{ countryCode: string; handle: string }>
+  params: { countryCode: string; handle: string }
 }
 
 export async function generateStaticParams() {
   try {
     const regions = await listRegions()
-    const countryCodes = regions?.map((r) => 
+    const countryCodes = regions?.map((r) =>
       r.countries?.map((c) => c.iso_2)
     ).flat().filter(Boolean)
 
@@ -33,8 +33,8 @@ export async function generateStaticParams() {
           country,
           products: response.products,
         }
-      } catch (error) {
-        console.error(`Failed to fetch products for country ${country}:`, error)
+      } catch {
+        // ...skip logging...
         return { country, products: [] }
       }
     })
@@ -49,41 +49,35 @@ export async function generateStaticParams() {
         }))
       )
       .filter((param) => param.handle)
-  } catch (error) {
-    console.error(
-      `Failed to generate static paths for product pages: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`
-    )
+  } catch {
+    // ...skip logging...
     return []
   }
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   try {
-    const params = await props.params
-    const { handle } = params
-    
-    const [region, productData] = await Promise.allSettled([
-      getRegion(params.countryCode),
-      listProducts({
-        countryCode: params.countryCode,
-        queryParams: { q: handle },
-      })
-    ])
+    const { countryCode, handle } = props.params
 
-    if (region.status === 'rejected' || !region.value) {
-      notFound()
+    const region = await getRegion(countryCode)
+    if (!region) {
+      return {
+        title: "Product Not Found | Lutyen's",
+        description: "This product could not be found.",
+      }
     }
 
-    if (productData.status === 'rejected') {
-      notFound()
-    }
-
-    const product = productData.value.response.products.find((p) => p.handle === handle)
+    const { response } = await listProducts({
+      countryCode,
+      queryParams: { q: handle },
+    })
+    const product = response.products.find((p) => p.handle === handle)
 
     if (!product) {
-      notFound()
+      return {
+        title: "Product Not Found | Lutyen's",
+        description: "This product could not be found.",
+      }
     }
 
     return {
@@ -95,8 +89,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
         images: product.thumbnail ? [product.thumbnail] : [],
       },
     }
-  } catch (error) {
-    console.error("Error generating metadata:", error)
+  } catch {
     return {
       title: "Product | Lutyen's",
       description: "Product page",
@@ -106,26 +99,19 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function ProductPage(props: Props) {
   try {
-    const params = await props.params
-    
-    const [region, productData] = await Promise.allSettled([
-      getRegion(params.countryCode),
-      listProducts({
-        countryCode: params.countryCode,
-        queryParams: { q: params.handle },
-      })
-    ])
+    const { countryCode, handle } = props.params
 
-    if (region.status === 'rejected' || !region.value) {
+    const region = await getRegion(countryCode)
+    if (!region) {
       notFound()
     }
 
-    if (productData.status === 'rejected') {
-      notFound()
-    }
-
-    const pricedProduct = productData.value.response.products.find(
-      (p) => p.handle === params.handle
+    const { response } = await listProducts({
+      countryCode,
+      queryParams: { q: handle },
+    })
+    const pricedProduct = response.products.find(
+      (p) => p.handle === handle
     )
 
     if (!pricedProduct) {
@@ -135,12 +121,11 @@ export default async function ProductPage(props: Props) {
     return (
       <ProductTemplate
         product={pricedProduct}
-        region={region.value}
-        countryCode={params.countryCode}
+        region={region}
+        countryCode={countryCode}
       />
     )
-  } catch (error) {
-    console.error("Error rendering product page:", error)
+  } catch {
     notFound()
   }
 }
