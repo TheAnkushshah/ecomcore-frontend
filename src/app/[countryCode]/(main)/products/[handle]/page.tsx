@@ -41,11 +41,8 @@ export async function generateStaticParams() {
       )
       .filter((param) => param.handle)
   } catch (error) {
-    // Improved error logging for better debugging
-    console.error(
-      `Failed to generate static paths for product pages:`,
-      error
-    )
+    // Remove console.error to avoid DYNAMIC_SERVER_USAGE error
+    // return an empty array on error
     return []
   }
 }
