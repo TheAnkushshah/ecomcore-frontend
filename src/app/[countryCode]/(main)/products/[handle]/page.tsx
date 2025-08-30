@@ -5,7 +5,7 @@ import { getRegion, listRegions } from "@lib/data/regions"
 import ProductTemplate from "@modules/products/templates"
 
 type Props = {
-  params: Promise<{ countryCode: string; handle: string }>
+  params: { countryCode: string; handle: string }
 }
 
 export async function generateStaticParams() {
@@ -41,26 +41,25 @@ export async function generateStaticParams() {
       )
       .filter((param) => param.handle)
   } catch (error) {
+    // Improved error logging for better debugging
     console.error(
-      `Failed to generate static paths for product pages: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }.`
+      `Failed to generate static paths for product pages:`,
+      error
     )
     return []
   }
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
-  const params = await props.params
-  const { handle } = params
-  const region = await getRegion(params.countryCode)
+  const { handle } = props.params
+  const region = await getRegion(props.params.countryCode)
 
   if (!region) {
     notFound()
   }
 
   const product = await listProducts({
-    countryCode: params.countryCode,
+    countryCode: props.params.countryCode,
     queryParams: { q: handle },
   }).then(({ response }) => response.products.find((p) => p.handle === handle))
 
@@ -80,17 +79,16 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage(props: Props) {
-  const params = await props.params
-  const region = await getRegion(params.countryCode)
+  const region = await getRegion(props.params.countryCode)
 
   if (!region) {
     notFound()
   }
 
   const pricedProduct = await listProducts({
-    countryCode: params.countryCode,
-    queryParams: { q: params.handle },
-  }).then(({ response }) => response.products.find((p) => p.handle === params.handle))
+    countryCode: props.params.countryCode,
+    queryParams: { q: props.params.handle },
+  }).then(({ response }) => response.products.find((p) => p.handle === props.params.handle))
 
   if (!pricedProduct) {
     notFound()
@@ -100,7 +98,7 @@ export default async function ProductPage(props: Props) {
     <ProductTemplate
       product={pricedProduct}
       region={region}
-      countryCode={params.countryCode}
+      countryCode={props.params.countryCode}
     />
   )
 }
