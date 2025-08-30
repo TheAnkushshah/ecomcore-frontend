@@ -4,29 +4,38 @@ import { listProducts } from "@lib/data/products"
 import { getRegion, listRegions } from "@lib/data/regions"
 import ProductTemplate from "@modules/products/templates"
 
+// Force dynamic rendering to handle dynamic data fetching
+export const dynamic = 'force-dynamic'
+
 type Props = {
-  params: { countryCode: string; handle: string }
+  params: Promise<{ countryCode: string; handle: string }>
 }
 
 export async function generateStaticParams() {
   try {
-    const countryCodes = await listRegions().then((regions) =>
-      regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
-    )
+    const regions = await listRegions()
+    const countryCodes = regions?.map((r) => 
+      r.countries?.map((c) => c.iso_2)
+    ).flat().filter(Boolean)
 
-    if (!countryCodes) {
+    if (!countryCodes || countryCodes.length === 0) {
       return []
     }
 
     const promises = countryCodes.map(async (country) => {
-      const { response } = await listProducts({
-        countryCode: country,
-        queryParams: { limit: 100, fields: "handle" },
-      })
+      try {
+        const { response } = await listProducts({
+          countryCode: country,
+          queryParams: { limit: 100, fields: "handle" },
+        })
 
-      return {
-        country,
-        products: response.products,
+        return {
+          country,
+          products: response.products,
+        }
+      } catch (error) {
+        console.error(`Failed to fetch products for country ${country}:`, error)
+        return { country, products: [] }
       }
     })
 
@@ -41,68 +50,97 @@ export async function generateStaticParams() {
       )
       .filter((param) => param.handle)
   } catch (error) {
-    // Remove console.error to avoid DYNAMIC_SERVER_USAGE error
-    // return an empty array on error
+    console.error(
+      `Failed to generate static paths for product pages: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    )
     return []
   }
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
-  const { handle } = props.params
-  const region = await getRegion(props.params.countryCode)
+  try {
+    const params = await props.params
+    const { handle } = params
+    
+    const [region, productData] = await Promise.allSettled([
+      getRegion(params.countryCode),
+      listProducts({
+        countryCode: params.countryCode,
+        queryParams: { q: handle },
+      })
+    ])
 
-  // Don't call notFound() here, just return default metadata if not found
-  if (!region) {
-    return {
-      title: "Product Not Found | Lutyen's",
-      description: "This product could not be found.",
+    if (region.status === 'rejected' || !region.value) {
+      notFound()
     }
-  }
 
-  const product = await listProducts({
-    countryCode: props.params.countryCode,
-    queryParams: { q: handle },
-  }).then(({ response }) => response.products.find((p) => p.handle === handle))
-
-  if (!product) {
-    return {
-      title: "Product Not Found | Lutyen's",
-      description: "This product could not be found.",
+    if (productData.status === 'rejected') {
+      notFound()
     }
-  }
 
-  return {
-    title: `${product.title} | Lutyen's`,
-    description: `${product.title}`,
-    openGraph: {
+    const product = productData.value.response.products.find((p) => p.handle === handle)
+
+    if (!product) {
+      notFound()
+    }
+
+    return {
       title: `${product.title} | Lutyen's`,
       description: `${product.title}`,
-      images: product.thumbnail ? [product.thumbnail] : [],
-    },
+      openGraph: {
+        title: `${product.title} | Lutyen's`,
+        description: `${product.title}`,
+        images: product.thumbnail ? [product.thumbnail] : [],
+      },
+    }
+  } catch (error) {
+    console.error("Error generating metadata:", error)
+    return {
+      title: "Product | Lutyen's",
+      description: "Product page",
+    }
   }
 }
 
 export default async function ProductPage(props: Props) {
-  const region = await getRegion(props.params.countryCode)
+  try {
+    const params = await props.params
+    
+    const [region, productData] = await Promise.allSettled([
+      getRegion(params.countryCode),
+      listProducts({
+        countryCode: params.countryCode,
+        queryParams: { q: params.handle },
+      })
+    ])
 
-  if (!region) {
+    if (region.status === 'rejected' || !region.value) {
+      notFound()
+    }
+
+    if (productData.status === 'rejected') {
+      notFound()
+    }
+
+    const pricedProduct = productData.value.response.products.find(
+      (p) => p.handle === params.handle
+    )
+
+    if (!pricedProduct) {
+      notFound()
+    }
+
+    return (
+      <ProductTemplate
+        product={pricedProduct}
+        region={region.value}
+        countryCode={params.countryCode}
+      />
+    )
+  } catch (error) {
+    console.error("Error rendering product page:", error)
     notFound()
   }
-
-  const pricedProduct = await listProducts({
-    countryCode: props.params.countryCode,
-    queryParams: { q: props.params.handle },
-  }).then(({ response }) => response.products.find((p) => p.handle === props.params.handle))
-
-  if (!pricedProduct) {
-    notFound()
-  }
-
-  return (
-    <ProductTemplate
-      product={pricedProduct}
-      region={region}
-      countryCode={props.params.countryCode}
-    />
-  )
 }
